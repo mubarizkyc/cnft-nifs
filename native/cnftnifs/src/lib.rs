@@ -34,7 +34,6 @@ use solana_sdk::{
     system_instruction,
     transaction::Transaction,
 };
-use std::convert::TryInto;
 
 // Merkle Tree & Compression
 use spl_account_compression::{state::CONCURRENT_MERKLE_TREE_HEADER_SIZE_V1, ConcurrentMerkleTree};
@@ -56,8 +55,10 @@ pub struct LeafSchemaReplica {
     creator_hash: Vec<u8>,
 }
 
-pub async fn create_tree_config(tree_string: String) -> Result<String, Box<dyn stdError>> {
-    let payer = read_keypair_file(KEYPAIR_PATH).expect("Failed to read keypair file");
+pub async fn create_tree_config(
+    tree_string: String,
+    payer: Keypair,
+) -> Result<String, Box<dyn stdError>> {
     let rpc_client =
         RpcClient::new_with_commitment(RPC_URL.to_string(), CommitmentConfig::confirmed());
     let tree = get_keypair(tree_string).unwrap();
@@ -269,13 +270,14 @@ fn getbs58_payer_nif() -> NifResult<(Atom, String)> {
     Ok((atoms::ok(), payer_bs58)) //  Return `{:ok, keypair}`
 }
 #[rustler::nif(schedule = "DirtyIo")]
-fn create_tree_nif() -> NifResult<(Atom, String)> {
+fn create_tree_nif(payer_bs58: String) -> NifResult<(Atom, String)> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
 
     runtime.block_on(async {
         let tree_bs58 = get_keypair_bs58(Keypair::new());
+        let payer = get_keypair(payer_bs58).map_err(|_| Error::Atom("invalid_pubkey"))?;
 
-        let _signature = create_tree_config(tree_bs58.clone())
+        let _signature = create_tree_config(tree_bs58.clone(), payer)
             .await
             .map_err(|_| Error::Atom("failed_to_create_tree_config"))?; //  Handle errors properly
 
@@ -308,7 +310,7 @@ fn mint_nft_nif(
     token_program_version: u8, // 1 for original and 2 for Token22
     proof_tree: String,
 ) -> NifResult<(Atom, LeafSchemaReplica, String)> {
-    let runtime = tokio::runtime::Runtime::new().unwrap(); //  Expensive, but okay in DirtyCpu
+    let runtime = tokio::runtime::Runtime::new().unwrap();
 
     let nft_creator =
         get_keypair(creator_address).map_err(|_| Error::Atom("invalid_creator_keypair"))?;
@@ -356,7 +358,7 @@ fn transfer_nft_nif(
     merkle_tree: String,
     asset: LeafSchemaReplica,
 ) -> NifResult<(Atom, String, String)> {
-    let runtime = tokio::runtime::Runtime::new().unwrap(); //  Creating new runtime is costly
+    let runtime = tokio::runtime::Runtime::new().unwrap();
 
     runtime.block_on(async {
         let reciever_pubkey =
@@ -374,10 +376,10 @@ rustler::init!("Elixir.CnftNifs");
 usage
 """
 {:ok, payer_bs58} = CnftNifs.getbs58_payer()
-{:ok, tree_bs58} = NIFDEMO.create_tree()
-{:ok, proof_tree} = NIFDEMO.create_merkle_tree()
-{:ok, nft, proof_tree} = NIFDEMO.mint_nft(tree_bs58, "CoolNFT", "https://example.com/nft.png", "CNFT", payer_bs58, 100, true, 500, false, true, 1, proof_tree)
- {:ok, signature, proof_tree} = NIFDEMO.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh", tree_bs58, proof_tree, nft)
+{:ok, tree_bs58} = CnftNifs.create_tree(payer_bs58)
+{:ok, proof_tree} = CnftNifs.create_merkle_tree()
+{:ok, nft, proof_tree} = CnftNifs.mint_nft(tree_bs58, "CoolNFT", "https://example.com/nft.png", "CNFT", payer_bs58, 100, true, 500, false, true, 1, proof_tree)
+{:ok, signature, proof_tree} = NIFDEMO.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh", tree_bs58, proof_tree, nft)
 76r2MK11WgnaW42cEHE8eYQc4nPJgbtVoqvm1zkgMo4w
 
  """

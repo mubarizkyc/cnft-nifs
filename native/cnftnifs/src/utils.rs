@@ -1,4 +1,5 @@
 use solana_sdk::signature::Keypair;
+
 pub fn vec_to_array(vec: Vec<u8>) -> Result<[u8; 32], &'static str> {
     vec.try_into().map_err(|_| "Vector length is not 32 bytes")
 }

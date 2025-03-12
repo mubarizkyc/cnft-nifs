@@ -1,8 +1,8 @@
 defmodule CnftNifs do
   use Rustler, otp_app: :cnftnifs, crate: :cnftnifs
 
-  def create_tree do
-    case create_tree_nif() do
+  def create_tree(payer_bs58) when is_binary(payer_bs58) do
+    case create_tree_nif(payer_bs58) do
       {:ok, keypair} ->
         IO.puts("Created tree with keypair: #{keypair}")
         {:ok, keypair}
@@ -12,6 +12,7 @@ defmodule CnftNifs do
         {:error, reason}
     end
   end
+
 
   def create_merkle_tree do
     case create_merkle_tree_nif() do
@@ -62,7 +63,7 @@ defmodule CnftNifs do
   end
 
   # Private functions for NIFs
-  defp create_tree_nif, do: :erlang.nif_error(:nif_not_loaded)
+  defp create_tree_nif(_), do: :erlang.nif_error(:nif_not_loaded)
   defp create_merkle_tree_nif, do: :erlang.nif_error(:nif_not_loaded)
   defp getbs58_payer_nif, do: :erlang.nif_error(:nif_not_loaded)
   defp mint_nft_nif(_, _, _, _, _, _, _, _, _, _, _, _), do: :erlang.nif_error(:nif_not_loaded)
