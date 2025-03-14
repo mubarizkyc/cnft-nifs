@@ -218,7 +218,7 @@ fn mint_nft_nif(
 
     runtime.block_on(async {
         match mint(tree.clone(), meta_data).await {
-            Ok(signature) => Ok((atoms::ok(), signature)),
+            Ok(asset_id) => Ok((atoms::ok(), asset_id)),
             Err(err) => {
                 eprintln!("Minting failed: {:?}", err);
                 Err(Error::Atom("failed_to_mint_nft"))
