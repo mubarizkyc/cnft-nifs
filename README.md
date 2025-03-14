@@ -58,6 +58,7 @@ fn mint_nft_nif(
 ) -> NifResult<(Atom, String)> {
 ```
 ```shell
+# replace nft name ,url ,symbol and other configs as you like
 {:ok, asset_id} = CnftNifs.mint_nft(tree_bs58, "CoolNFT", "https://example.com/nft.png", "CNFT", 100, true, 500, false, true, 1)
 ```
 **Transfer**
