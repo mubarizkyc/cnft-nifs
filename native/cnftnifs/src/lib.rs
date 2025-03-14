@@ -9,6 +9,7 @@ mod atoms {
         unknown // Other error
     }
 }
+mod constants;
 mod utils;
 use mpl_bubblegum::{
     accounts::TreeConfig,
@@ -26,16 +27,10 @@ use solana_sdk::{
     transaction::Transaction,
 };
 
+pub use constants::*;
 pub use utils::*;
-
 // Merkle Tree & Compression
 use spl_account_compression::{state::CONCURRENT_MERKLE_TREE_HEADER_SIZE_V1, ConcurrentMerkleTree};
-//use spl_merkle_tree_reference::{MerkleTree, Node};
-const RPC_URL: &str = "https://api.devnet.solana.com";
-const KEYPAIR_PATH: &str = "/home/mubariz/.config/solana/id.json"; // Change to your actual path
-const CREATOR_KEYPAIR_PATH: &str = "/home/mubariz/.config/solana/id.json";
-const MAX_DEPTH: usize = 6;
-const MAX_BUFFER_SIZE: usize = 16;
 
 pub async fn create_tree_config(tree_string: String) -> Result<String, Box<dyn stdError>> {
     let payer = read_keypair_file(KEYPAIR_PATH).expect("Failed to read keypair file");
@@ -111,7 +106,10 @@ pub async fn mint(
         recent_blockhash,
     );
 
-    let signature = rpc_client.send_and_confirm_transaction(&tx)?;
+    let signature = rpc_client.send_and_confirm_transaction(&tx).map_err(|e| {
+        println!("Transaction failed: {:?}", e);
+        e
+    })?;
     println!("cNFTs minted on Tx: {}", signature);
     Ok(asset_id.to_string())
 }
@@ -130,10 +128,7 @@ pub async fn transfer(
     let (tree_config, _) = TreeConfig::find_pda(&tree.pubkey());
 
     let (creator_hash, data_hash, nonce) = get_asset_data(&asset_id).await?;
-    let (proof, root) = get_proof_from_api(&asset_id).await?;
-    println!("Proof: {:?}, Root: {:?}", proof, root);
-    println!("Transfering NFT with id: {}", asset_id);
-
+    let (proof, root) = get_asset_proof(&asset_id).await?;
     let transfer_ix = TransferBuilder::new()
         .leaf_delegate(owner.pubkey(), false)
         .leaf_owner(owner.pubkey(), true)

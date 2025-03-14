@@ -1,18 +1,8 @@
-use solana_sdk::signature::Keypair;
-// Standard Library
-use std::error::Error as stdError;
-mod atoms {
-    rustler::atoms! {
-        ok,
-        error,
-        eof,
-        unknown // Other error
-    }
-}
 use bs58;
 use reqwest::Client;
 use serde_json::Value;
-use solana_sdk::{instruction::AccountMeta, pubkey::Pubkey};
+use solana_sdk::{instruction::AccountMeta, pubkey::Pubkey, signature::Keypair};
+use std::error::Error as stdError;
 pub fn vec_to_array(vec: Vec<u8>) -> Result<[u8; 32], &'static str> {
     vec.try_into().map_err(|_| "Vector length is not 32 bytes")
 }
@@ -24,7 +14,7 @@ pub fn get_keypair(keypair: String) -> Result<Keypair, Box<dyn std::error::Error
     let decoded = bs58::decode(&keypair).into_vec()?;
     Ok(Keypair::from_bytes(&decoded)?)
 }
-pub async fn get_proof_from_api(
+pub async fn get_asset_proof(
     asset_id: &str,
 ) -> Result<(Vec<AccountMeta>, [u8; 32]), Box<dyn stdError>> {
     let client = Client::new();
