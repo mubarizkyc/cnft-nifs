@@ -1001,6 +1001,7 @@ dependencies = [
  "dirs",
  "lazy_static",
  "mpl-bubblegum",
+ "reqwest",
  "rustler",
  "serde",
  "serde_json",
