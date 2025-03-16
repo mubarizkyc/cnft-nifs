@@ -25,8 +25,8 @@ defmodule CnftNifs do
     end
   end
 
-  def transfer_nft(reciever, tree, asset) do
-    case transfer_nft_nif(reciever, tree, asset) do
+  def transfer_nft(reciever, asset) do
+    case transfer_nft_nif(reciever,asset) do
       {:ok, signature} ->
         IO.puts("NFT transferred successfully! Tx Signature: #{signature}")
         {:ok, signature}
@@ -40,5 +40,5 @@ defmodule CnftNifs do
   # Private functions for NIFs
   defp create_tree_nif, do: :erlang.nif_error(:nif_not_loaded)
   defp mint_nft_nif(_, _, _, _, _, _, _, _, _, _), do: :erlang.nif_error(:nif_not_loaded)
-  defp transfer_nft_nif(_, _, _), do: :erlang.nif_error(:nif_not_loaded)
+  defp transfer_nft_nif(_, _), do: :erlang.nif_error(:nif_not_loaded)
 end

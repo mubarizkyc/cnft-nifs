@@ -1,5 +1,6 @@
+mod constants;
+mod utils;
 use rustler::{Atom, Error, NifResult};
-// Standard Library
 use std::error::Error as stdError;
 mod atoms {
     rustler::atoms! {
@@ -9,8 +10,6 @@ mod atoms {
         unknown // Other error
     }
 }
-mod constants;
-mod utils;
 use mpl_bubblegum::{
     accounts::TreeConfig,
     instructions::{CreateTreeConfigBuilder, MintV1Builder, TransferBuilder},
@@ -117,22 +116,21 @@ pub async fn mint(
 use std::str::FromStr;
 pub async fn transfer(
     receiver: Pubkey,
-    tree_string: String,
     asset_id: &String,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let owner = read_keypair_file(KEYPAIR_PATH).expect("Failed to read keypair file");
     let payer = read_keypair_file(KEYPAIR_PATH).expect("Failed to read keypair file");
     let rpc_client =
         RpcClient::new_with_commitment(RPC_URL.to_string(), CommitmentConfig::confirmed());
-    let tree = get_keypair(tree_string).unwrap();
-    let (tree_config, _) = TreeConfig::find_pda(&tree.pubkey());
+    let (proof, root, tree) = get_asset_proof(&asset_id).await?;
+    let (tree_config, _) = TreeConfig::find_pda(&tree);
 
     let (creator_hash, data_hash, nonce) = get_asset_data(&asset_id).await?;
-    let (proof, root) = get_asset_proof(&asset_id).await?;
+
     let transfer_ix = TransferBuilder::new()
         .leaf_delegate(owner.pubkey(), false)
         .leaf_owner(owner.pubkey(), true)
-        .merkle_tree(tree.pubkey())
+        .merkle_tree(tree)
         .tree_config(tree_config)
         .new_leaf_owner(receiver)
         .root(root)
@@ -230,7 +228,6 @@ fn mint_nft_nif(
 #[rustler::nif(schedule = "DirtyIo")]
 fn transfer_nft_nif(
     reciever: String, // receiver pubkey
-    tree: String,
     asset_id: String,
 ) -> NifResult<(Atom, String)> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -239,7 +236,7 @@ fn transfer_nft_nif(
         let reciever_pubkey =
             Pubkey::from_str(&reciever).map_err(|_| Error::Atom("invalid_pubkey"))?; // ✅ Proper error handling
 
-        let signature = transfer(reciever_pubkey, tree, &asset_id)
+        let signature = transfer(reciever_pubkey, &asset_id)
             .await
             .map_err(|e| Error::Term(Box::new(format!("failed_to_transfer: {}", e))))?;
 

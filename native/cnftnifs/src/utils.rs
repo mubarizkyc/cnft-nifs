@@ -17,7 +17,7 @@ pub fn get_keypair(keypair: String) -> Result<Keypair, Box<dyn std::error::Error
 }
 pub async fn get_asset_proof(
     asset_id: &str,
-) -> Result<(Vec<AccountMeta>, [u8; 32]), Box<dyn stdError>> {
+) -> Result<(Vec<AccountMeta>, [u8; 32], Pubkey), Box<dyn stdError>> {
     let client = Client::new();
 
     let payload = serde_json::json!({
@@ -71,7 +71,14 @@ pub async fn get_asset_proof(
         })
         .collect::<Result<Vec<AccountMeta>, String>>()?;
 
-    Ok((proof_list, root))
+    let tree_id_str = response["result"]["tree_id"]
+        .as_str()
+        .ok_or_else(|| "API response missing 'tree_id' field".to_string())?;
+
+    let tree_id = Pubkey::try_from(tree_id_str)
+        .map_err(|_| format!("Invalid Pubkey format for 'tree_id': {}", tree_id_str))?;
+
+    Ok((proof_list, root, tree_id))
 }
 
 pub async fn get_asset_data(
