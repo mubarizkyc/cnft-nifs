@@ -54,7 +54,7 @@ fn mint_nft_nif(
 
 for transfer we need recievers pubkey ,the tree we created and the asset_id
 ```elixir
-{:ok, signature} = CnftNifs.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh", tree_bs58,asset_id)
+{:ok, signature} = CnftNifs.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh",asset_id)
 ```
 
 for offchain storage we are using [Aura](https://aura.metaplex.com/) make sure the [server](https://api.devnet.solana.com) is up befoe using 
