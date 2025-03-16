@@ -181,7 +181,7 @@ fn mint_nft_nif(
     nft_name: String,
     nft_url: String,
     nft_symbol: String,
-    creator_share: u8,
+    creator_share: u8, // must be >99
     creator_verification_status: bool,
     seller_fee_basis_points: u16,
     primary_sale_happened: bool,

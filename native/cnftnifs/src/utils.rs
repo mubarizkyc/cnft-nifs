@@ -3,6 +3,7 @@ use reqwest::Client;
 use serde_json::Value;
 use solana_sdk::{instruction::AccountMeta, pubkey::Pubkey, signature::Keypair};
 use std::error::Error as stdError;
+pub const AURA_URL: &str = "https://devnet-aura.metaplex.com/df9a341a-4158-439c-bbde-28635dfd1cad";
 pub fn vec_to_array(vec: Vec<u8>) -> Result<[u8; 32], &'static str> {
     vec.try_into().map_err(|_| "Vector length is not 32 bytes")
 }
@@ -29,7 +30,7 @@ pub async fn get_asset_proof(
     });
 
     let response: Value = client
-        .post("https://aura-devnet.metaplex.com")
+        .post(AURA_URL)
         .json(&payload)
         .send()
         .await?
@@ -76,7 +77,7 @@ pub async fn get_asset_data(
     });
 
     let response: Value = client
-        .post("https://aura-devnet.metaplex.com")
+        .post(AURA_URL)
         .json(&payload)
         .send()
         .await?
