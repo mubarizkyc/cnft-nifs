@@ -24,46 +24,56 @@ pub async fn get_asset_proof(
         "jsonrpc": "2.0",
         "id": 1,
         "method": "getAssetProof",
-        "params": {
-            "id": asset_id
-        }
+        "params": { "id": asset_id }
     });
 
     let response: Value = client
         .post(AURA_URL)
         .json(&payload)
         .send()
-        .await?
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?
         .json()
-        .await?;
+        .await
+        .map_err(|e| format!("Failed to parse JSON response: {}", e))?;
 
-    // Extract and decode root as [u8; 32]
     let root_str = response["result"]["root"]
         .as_str()
-        .ok_or("Missing root field")?;
+        .ok_or_else(|| "API response missing 'root' field".to_string())?;
+
     let root_vec = bs58::decode(root_str)
         .into_vec()
-        .map_err(|_| "Failed to decode root from base58")?;
+        .map_err(|e| format!("Failed to decode 'root' from base58: {}", e))?;
+
     let root: [u8; 32] = root_vec
         .try_into()
-        .map_err(|_| "Root key has invalid length")?;
+        .map_err(|_| "Decoded 'root' has invalid length (expected 32 bytes)".to_string())?;
 
-    // Extract proof list
-    let proof_list = response["result"]["proof"]
+    let proof_array = response["result"]["proof"]
         .as_array()
-        .ok_or("Missing proof array")?
+        .ok_or_else(|| "API response missing 'proof' array".to_string())?;
+
+    let proof_list = proof_array
         .iter()
-        .filter_map(|entry| entry.as_str())
-        .filter_map(|proof_str| Pubkey::try_from(proof_str).ok()) // Skip invalid keys
-        .map(|pubkey| AccountMeta {
-            pubkey,
-            is_signer: false,
-            is_writable: false,
+        .map(|entry| {
+            entry
+                .as_str()
+                .ok_or_else(|| format!("Invalid proof entry: {:?}", entry))
+                .and_then(|proof_str| {
+                    Pubkey::try_from(proof_str)
+                        .map_err(|_| format!("Invalid Pubkey format in proof: {}", proof_str))
+                })
+                .map(|pubkey| AccountMeta {
+                    pubkey,
+                    is_signer: false,
+                    is_writable: false,
+                })
         })
-        .collect();
+        .collect::<Result<Vec<AccountMeta>, String>>()?;
 
     Ok((proof_list, root))
 }
+
 pub async fn get_asset_data(
     asset_id: &str,
 ) -> Result<([u8; 32], [u8; 32], u64), Box<dyn stdError>> {
@@ -80,38 +90,42 @@ pub async fn get_asset_data(
         .post(AURA_URL)
         .json(&payload)
         .send()
-        .await?
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?
         .json()
-        .await?;
+        .await
+        .map_err(|e| format!("Failed to parse JSON response: {}", e))?;
 
-    // Navigate the JSON to get compression fields
     let compression = response["result"]["compression"]
         .as_object()
-        .ok_or("Missing compression field")?;
+        .ok_or_else(|| "API response missing 'compression' field".to_string())?;
 
-    // Extract and decode `creator_hash`
     let creator_hash_str = compression
         .get("creator_hash")
         .and_then(Value::as_str)
-        .ok_or("Missing creator_hash")?;
-    let creator_hash: [u8; 32] = bs58::decode(creator_hash_str)
-        .into_vec()?
-        .try_into()
-        .map_err(|_| "Invalid creator_hash length")?;
+        .ok_or_else(|| "API response missing 'creator_hash' field".to_string())?;
 
-    // Extract and decode `data_hash`
+    let creator_hash: [u8; 32] = bs58::decode(creator_hash_str)
+        .into_vec()
+        .map_err(|e| format!("Failed to decode 'creator_hash' from base58: {}", e))?
+        .try_into()
+        .map_err(|_| "Decoded 'creator_hash' has invalid length (expected 32 bytes)".to_string())?;
+
     let data_hash_str = compression
         .get("data_hash")
         .and_then(Value::as_str)
-        .ok_or("Missing data_hash")?;
+        .ok_or_else(|| "API response missing 'data_hash' field".to_string())?;
+
     let data_hash: [u8; 32] = bs58::decode(data_hash_str)
-        .into_vec()?
+        .into_vec()
+        .map_err(|e| format!("Failed to decode 'data_hash' from base58: {}", e))?
         .try_into()
-        .map_err(|_| "Invalid data_hash length")?;
+        .map_err(|_| "Decoded 'data_hash' has invalid length (expected 32 bytes)".to_string())?;
 
     let nonce = compression
         .get("leaf_id")
         .and_then(Value::as_u64)
-        .ok_or("Missing data_hash")?;
+        .ok_or_else(|| "API response missing 'leaf_id' field or invalid type".to_string())?;
+
     Ok((creator_hash, data_hash, nonce))
 }

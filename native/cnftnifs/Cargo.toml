@@ -9,14 +9,14 @@ name = "cnftnifs"
 crate-type = ["cdylib"]
 
 [dependencies]
-bs58 = "0.5.1"
-mpl-bubblegum = "1.4.0"
-rustler = { version = "0.36.1", features = ["serde"] }
-serde_json = "1.0.140"
-solana-client = "1.8.0"
-spl-account-compression = { version = "0.3.1", features = ["no-entrypoint", "cpi"] }
-spl-noop = "0.2.0"
-tokio = "1.43.0"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
+rustler = { version = "0.36.1", features = ["serde"] }
+spl-account-compression = { version = "0.3.1", features = ["no-entrypoint", "cpi"] }
+mpl-bubblegum = "1.4.0"
 solana-program = "2.2.1"
 solana-sdk = "1.18.18"
+solana-client = "1.8.0"
+spl-noop = "0.2.0"
+serde_json = "1.0.140"
+tokio = "1.43.0"
+bs58 = "0.5.1"
