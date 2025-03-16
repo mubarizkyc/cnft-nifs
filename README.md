@@ -57,14 +57,14 @@ fn mint_nft_nif(
     token_program_version: u8, // 1 for original and 2 for Token22
 ) -> NifResult<(Atom, String)> {
 ```
-```shell
+```elixir
 # replace nft name ,url ,symbol and other configs as you like
 {:ok, asset_id} = CnftNifs.mint_nft(tree_bs58, "CoolNFT", "https://example.com/nft.png", "CNFT", 100, true, 500, false, true, 1)
 ```
 **Transfer**
 
 for transfer we need recievers pubkey ,the tree we created and the asset_id
-```shell
+```elixir
 {:ok, signature} = CnftNifs.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh", tree_bs58,asset_id)
 ```
 
