@@ -22,7 +22,7 @@ defmodule CnftNifsTest do
 
     assert receiver =~ ~r/^[1-9A-HJ-NP-Za-km-z]+$/
 
-    {:ok, signature} = CnftNifs.transfer_nft(receiver, tree, asset)
+    {:ok, signature} = CnftNifs.transfer_nft(receiver,asset)
     IO.puts("Transfer successful: #{signature}")
 
     assert signature =~ ~r/^[1-9A-HJ-NP-Za-km-z]+$/

@@ -2,6 +2,7 @@ mod constants;
 mod utils;
 use rustler::{Atom, Error, NifResult};
 use std::error::Error as stdError;
+use std::str::FromStr;
 mod atoms {
     rustler::atoms! {
         ok,
@@ -112,8 +113,6 @@ pub async fn mint(
     println!("cNFTs minted on Tx: {}", signature);
     Ok(asset_id.to_string())
 }
-
-use std::str::FromStr;
 pub async fn transfer(
     receiver: Pubkey,
     asset_id: &String,
@@ -159,20 +158,24 @@ pub async fn transfer(
 }
 #[rustler::nif(schedule = "DirtyIo")]
 fn create_tree_nif() -> NifResult<(Atom, String)> {
-    // the payer will be creator for tree as well
-    let runtime = tokio::runtime::Runtime::new().unwrap();
+    // Create Tokio runtime safely
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| Error::Term(Box::new(format!("failed_to_create_runtime: {}", e))))?;
 
     runtime.block_on(async {
         let tree_bs58 = get_keypair_bs58(Keypair::new());
+
+        // Properly handle errors from `create_tree_config`
         let _signature = create_tree_config(tree_bs58.clone())
             .await
-            .map_err(|_| Error::Atom("failed_to_create_tree_config"))?; //  Handle errors properly
+            .map_err(|e| Error::Term(Box::new(format!("failed_to_create_tree_config: {}", e))))?;
 
         println!("Your tree keypair is: {}", tree_bs58);
 
-        Ok((atoms::ok(), tree_bs58)) //  Return `{:ok, keypair}`
+        Ok((atoms::ok(), tree_bs58)) // Return `{:ok, keypair}`
     })
 }
+
 #[rustler::nif(schedule = "DirtyIo")]
 fn mint_nft_nif(
     tree: String,
@@ -186,17 +189,20 @@ fn mint_nft_nif(
     is_mutable: bool,
     token_program_version: u8, // 1 for original and 2 for Token22
 ) -> NifResult<(Atom, String)> {
-    let runtime = tokio::runtime::Runtime::new().unwrap();
+    // Create runtime safely
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| Error::Term(Box::new(format!("failed_to_create_runtime: {}", e))))?;
 
-    let creator_address =
-        read_keypair_file(CREATOR_KEYPAIR_PATH).expect("Failed to read keypair file");
+    // Read creator keypair safely
+    let creator_address = read_keypair_file(CREATOR_KEYPAIR_PATH)
+        .map_err(|e| Error::Term(Box::new(format!("failed_to_read_keypair: {}", e))))?;
 
     let meta_data = MetadataArgs {
         name: nft_name,
         uri: nft_url,
         symbol: nft_symbol,
         creators: vec![Creator {
-            address: creator_address.pubkey(), //  Creator is payer
+            address: creator_address.pubkey(), // Creator is payer
             share: creator_share,
             verified: creator_verification_status,
         }],
@@ -219,7 +225,10 @@ fn mint_nft_nif(
             Ok(asset_id) => Ok((atoms::ok(), asset_id)),
             Err(err) => {
                 eprintln!("Minting failed: {:?}", err);
-                Err(Error::Atom("failed_to_mint_nft"))
+                Err(Error::Term(Box::new(format!(
+                    "failed_to_mint_nft: {}",
+                    err
+                ))))
             }
         }
     })
@@ -227,16 +236,19 @@ fn mint_nft_nif(
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn transfer_nft_nif(
-    reciever: String, // receiver pubkey
+    receiver: String, // receiver pubkey
     asset_id: String,
 ) -> NifResult<(Atom, String)> {
-    let runtime = tokio::runtime::Runtime::new().unwrap();
+    // Create runtime safely
+    let runtime = tokio::runtime::Runtime::new()
+        .map_err(|e| Error::Term(Box::new(format!("failed_to_create_runtime: {}", e))))?;
 
     runtime.block_on(async {
-        let reciever_pubkey =
-            Pubkey::from_str(&reciever).map_err(|_| Error::Atom("invalid_pubkey"))?; // ✅ Proper error handling
+        // Convert receiver pubkey safely
+        let receiver_pubkey = Pubkey::from_str(&receiver)
+            .map_err(|e| Error::Term(Box::new(format!("invalid_pubkey: {}", e))))?;
 
-        let signature = transfer(reciever_pubkey, &asset_id)
+        let signature = transfer(receiver_pubkey, &asset_id)
             .await
             .map_err(|e| Error::Term(Box::new(format!("failed_to_transfer: {}", e))))?;
 
@@ -244,12 +256,3 @@ fn transfer_nft_nif(
     })
 }
 rustler::init!("Elixir.CnftNifs");
-/*
-usage
-"""
-{:ok, tree_bs58} = CnftNifs.create_tree()
-{:ok, asset_id} = CnftNifs.mint_nft(tree_bs58, "CoolNFT", "https://example.com/nft.png", "CNFT", 100, true, 500, false, true, 1)
-{:ok, signature} = CnftNifs.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh", tree_bs58,asset_id)
-76r2MK11WgnaW42cEHE8eYQc4nPJgbtVoqvm1zkgMo4w
- """
-*/
