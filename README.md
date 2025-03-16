@@ -1,27 +1,16 @@
 # CnftNifs
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `cnftnifs` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:cnftnifs, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/cnftnis>.
 ## Config 
-set keypair path in cnfts-nifs/native/cnftnifs/constants.rs to your devent keypair path 
+set keypair path in **cnfts-nifs/native/cnftnifs/constants.rs** to your devent keypair path 
 ```rust
 
 pub const KEYPAIR_PATH: &str = ""; // Change to your actual path
 pub const CREATOR_KEYPAIR_PATH: &str = "";
+
+```
+set aura api key path in **cnfts-nifs/native/cnftnifs/utils.rs** ,as we will be using Aura for offchain asset & proof retrivel,you can get it from [here](https://aura-app.metaplex.com/en/login) 
+```rust
+pub const AURA_URL: &str = "https://devnet-aura.metaplex.com/df9a341a-4158-439c-bbde-28635dfd1cad";
 
 ```
 ## Build & Test
