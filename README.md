@@ -20,17 +20,14 @@ iex -S mix # start iex
 ```
 ## Nifs
 **Create Tree**
-
-we still need some onchain accounts to keep track of the Merkle Tree and its configuration
-
-we can change Max Depth and Max Buffer Size in constrants.rs,
+Max Depth and Max Buffer Size can be modified in constrants.rs,
 [How it affects nfts](https://developers.metaplex.com/bubblegum/create-trees)
 ```shell
 {:ok, tree_bs58} = CnftNifs.create_tree()
 ```
 **Mint**
 
-we need previously created tree & Metadata ,currently the nif is not taking optonal Metadata parameters
+we need previously created tree & Metadata for minting nft
 ```rust
 #[rustler::nif(schedule = "DirtyIo")]
 fn mint_nft_nif(
@@ -52,9 +49,8 @@ fn mint_nft_nif(
 ```
 **Transfer**
 
-for transfer we need recievers pubkey ,the tree we created and the asset_id
+for transfer we need recievers pubkey &  asset_id
 ```elixir
 {:ok, signature} = CnftNifs.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh",asset_id)
 ```
-
 for offchain storage we are using [Aura](https://aura.metaplex.com/) make sure the [server](https://api.devnet.solana.com) is up befoe using 
