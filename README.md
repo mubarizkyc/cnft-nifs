@@ -15,8 +15,11 @@ pub const AURA_URL: &str = "https://devnet-aura.metaplex.com/df9a341a-4158-439c-
 ```
 ## Build & Test
 ```shell
-mix deps.get && cargo build --release && mix compile && mix test
-iex -S mix # start iex
+mix deps.get && cargo build --release && mix compile 
+```
+## Start Elixir Shell
+```shell
+iex -S mix 
 ```
 ## Nifs
 **Create Tree**
@@ -29,6 +32,7 @@ Max Depth and Max Buffer Size can be modified in constrants.rs,
 
 we need previously created tree & Metadata for minting nft
 ```rust
+// formtat
 #[rustler::nif(schedule = "DirtyIo")]
 fn mint_nft_nif(
     tree: String,
@@ -52,5 +56,10 @@ fn mint_nft_nif(
 for transfer we need recievers pubkey &  asset_id
 ```elixir
 {:ok, signature} = CnftNifs.transfer_nft("ap5oPFPVSnxtc8bbvcCeKwy9Xnu5NePhMGzX2hexDVh",asset_id)
+```
+## Test
+after quitting shell session
+```shell
+mix test
 ```
 for offchain storage we are using [Aura](https://aura.metaplex.com/) make sure the [server](https://api.devnet.solana.com) is up befoe using 
